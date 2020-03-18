@@ -9,6 +9,7 @@ app.use(bodyParser.json());
 
 consing()
   .include("routes")
+  .include("utils")
   .into(app);
 
 app.listen(3000, "localhost", () => {
