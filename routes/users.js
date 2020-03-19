@@ -46,7 +46,7 @@ module.exports = app => {
   });
 
   routeId.put((req, res) => {
-    db.update({ _id: req.params.id }, req.body, err => {
+    db.update({ _id: req.params.id }, req.body, {}, (err, numReplaced) => {
       if (err) {
         app.utils.error.send(err, req, res);
       } else {
