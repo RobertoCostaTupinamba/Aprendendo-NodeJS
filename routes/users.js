@@ -4,6 +4,8 @@ let db = new NeDB({
   autoload: true
 });
 
+const { check, validationResult, body } = require("express-validator");
+
 module.exports = app => {
   let route = app.route("/users");
 
@@ -23,15 +25,32 @@ module.exports = app => {
       });
   });
 
-  route.post((req, res) => {
-    db.insert(req.body, (err, user) => {
-      if (err) {
-        app.utils.error.send(err, req, res);
-      } else {
-        res.status(200).json(user);
+  route.post(
+    [
+      check("name")
+        .notEmpty()
+        .withMessage("O nome é obrigatório"),
+      check("email")
+        .isEmail()
+        .normalizeEmail()
+        .withMessage("O email está invalido")
+    ],
+    (req, res) => {
+      let errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        app.utils.error.send(errors, req, res, 422);
+        return false;
       }
-    });
-  });
+
+      db.insert(req.body, (err, user) => {
+        if (err) {
+          app.utils.error.send(err, req, res);
+        } else {
+          res.status(200).json(user);
+        }
+      });
+    }
+  );
 
   let routeId = app.route("/users/:id");
 
@@ -45,15 +64,29 @@ module.exports = app => {
     });
   });
 
-  routeId.put((req, res) => {
-    db.update({ _id: req.params.id }, req.body, {}, (err, numReplaced) => {
-      if (err) {
-        app.utils.error.send(err, req, res);
-      } else {
-        res.status(200).json(Object.assign(req.params, req.body));
+  routeId.put(
+    [
+      check("name", "O nome é obrigatório").notEmpty(),
+      check("email", "O email está invalido")
+        .isEmail()
+        .normalizeEmail()
+    ],
+    (req, res) => {
+      let errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        app.utils.error.send(errors, req, res, 422);
+        return false;
       }
-    });
-  });
+
+      db.update({ _id: req.params.id }, req.body, {}, (err, numReplaced) => {
+        if (err) {
+          app.utils.error.send(err, req, res);
+        } else {
+          res.status(200).json(Object.assign(req.params, req.body));
+        }
+      });
+    }
+  );
 
   routeId.delete((req, res) => {
     db.remove({ _id: req.params.id }, {}, err => {
